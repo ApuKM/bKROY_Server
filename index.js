@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -41,7 +41,16 @@ async function startServer() {
         console.error("Error fetching products:", err);
         res.status(500).send({ error: "Failed to fetch products" });
       }
-    })
+    });
+
+    app.get("/api/products/:id", async (req, res) => {
+      const { id } = req.params;
+      const query = {
+        _id: new ObjectId(id),
+      };
+      const result = await productsCollection.findOne(query);
+      res.send(result);
+    });
 
     app.post("/api/products", async (req, res) => {
       try {
@@ -77,6 +86,3 @@ app.get("/", (req, res) => {
   res.send("Hello World!");
 });
 
-app.listen(port, () => {
-  console.log(`🚀 Server is running on port ${port}`);
-});
