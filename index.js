@@ -35,8 +35,38 @@ async function startServer() {
 
     app.get("/api/products", async (req, res) => {
       try {
-        const result = await productsCollection.find({}).toArray();
-        res.send(result);
+        const { category, searchQuery, sort, page, perPage } = req.query;
+        // console.log(sort,category)
+        let query = {};
+        if (category && category !== "All") {
+          query.category = category;
+        }
+        if (searchQuery) {
+          query.title = { $regex: searchQuery, $options: "i" };
+        }
+        const sortMap = {
+          latest: { createdAt: -1 },
+          price_asc: { price: 1 },
+          price_desc: { price: -1 },
+        };
+        const sortOrder = sortMap[sort] || sortMap.latest;
+
+        const currentPage = Math.max(1, parseInt(page) || 1);
+        const limit = Math.max(1, parseInt(perPage) || 12);
+        const skip = (currentPage - 1) * limit;
+
+        // Run both queries in parallel for better performance
+        const [total, products] = await Promise.all([
+          productsCollection.countDocuments(query),
+          productsCollection
+            .find(query)
+            .skip(skip)
+            .limit(limit)
+            .sort(sortOrder) 
+            .toArray(),
+        ]);
+
+        res.send({ total, products });
       } catch (err) {
         console.error("Error fetching products:", err);
         res.status(500).send({ error: "Failed to fetch products" });
@@ -85,4 +115,3 @@ startServer();
 app.get("/", (req, res) => {
   res.send("Hello World!");
 });
-
