@@ -29,6 +29,20 @@ async function startServer() {
     await client.connect();
     const db = client.db(process.env.DB_NAME);
 
+    const productsCollection = db.collection("products");
+
+    // Products apis
+    app.post("/api/products", async (req, res) => {
+      const product = req.body;
+      // console.log(product)
+      const newProduct = {
+        ...product,
+        createdAt: new Date(),
+      };
+      const result = await productsCollection.insertOne(newProduct);
+      res.send(result);
+    });
+
     await client.db("admin").command({ ping: 1 });
     console.log("🍃 Successfully connected to MongoDB!");
   } catch (error) {
