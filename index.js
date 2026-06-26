@@ -32,19 +32,39 @@ async function startServer() {
     const productsCollection = db.collection("products");
 
     // Products apis
+
+    app.get("/api/products", async (req, res) => {
+      try {
+        const result = await productsCollection.find({}).toArray();
+        res.send(result);
+      } catch (err) {
+        console.error("Error fetching products:", err);
+        res.status(500).send({ error: "Failed to fetch products" });
+      }
+    })
+
     app.post("/api/products", async (req, res) => {
-      const product = req.body;
-      // console.log(product)
-      const newProduct = {
-        ...product,
-        createdAt: new Date(),
-      };
-      const result = await productsCollection.insertOne(newProduct);
-      res.send(result);
+      try {
+        const product = req.body;
+        const newProduct = {
+          ...product,
+          createdAt: new Date(),
+        };
+        const result = await productsCollection.insertOne(newProduct);
+        res.send(result);
+      } catch (err) {
+        console.error("Error inserting product:", err);
+        res.status(500).send({ error: "Failed to create product" });
+      }
     });
 
     await client.db("admin").command({ ping: 1 });
     console.log("🍃 Successfully connected to MongoDB!");
+
+    // Start listening only after DB connection is ready
+    app.listen(port, () => {
+      console.log(`🚀 Server is running on port ${port}`);
+    });
   } catch (error) {
     console.error("❌ Database connection failed:", error);
     // process.exit(1);
