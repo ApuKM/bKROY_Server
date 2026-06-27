@@ -82,6 +82,28 @@ async function startServer() {
       res.send(result);
     });
 
+    app.patch("/api/products/:id", async (req, res) => {
+      try {
+        const { id } = req.params;
+        const updatedProduct = req.body;
+        // console.log(updatedProduct)
+        const filter = { _id: new ObjectId(id) };
+
+        const updatedDoc = {
+          $set: {
+            ...updatedProduct, 
+            updatedAt: new Date(), 
+          },
+        };
+
+        const result = await productsCollection.updateOne(filter, updatedDoc);
+        res.send(result);
+      } catch (error) {
+        console.error("Failed to update product:", error);
+        res.status(500).send({ error: "Internal Server Error" });
+      }
+    });
+
     app.get("/api/products/seller/:sellerId", async (req, res) => {
       const { sellerId } = req.params;
 
