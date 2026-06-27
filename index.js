@@ -103,6 +103,17 @@ async function startServer() {
         res.status(500).send({ error: "Internal Server Error" });
       }
     });
+    app.delete("/api/products/:id", async (req, res) => {
+      try {
+        const { id } = req.params;
+        // console.log(id)
+        const result = await productsCollection.deleteOne({_id: new ObjectId(id)});
+        res.send(result);
+      } catch (error) {
+        console.error("Failed to delete product:", error);
+        res.status(500).send({ error: "Internal Server Error" });
+      }
+    });
 
     app.get("/api/products/seller/:sellerId", async (req, res) => {
       const { sellerId } = req.params;
