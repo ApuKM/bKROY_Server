@@ -62,7 +62,7 @@ async function startServer() {
             .find(query)
             .skip(skip)
             .limit(limit)
-            .sort(sortOrder) 
+            .sort(sortOrder)
             .toArray(),
         ]);
 
@@ -79,6 +79,16 @@ async function startServer() {
         _id: new ObjectId(id),
       };
       const result = await productsCollection.findOne(query);
+      res.send(result);
+    });
+
+    app.get("/api/products/seller/:sellerId", async (req, res) => {
+      const { sellerId } = req.params;
+
+      const result = await productsCollection
+        .find({ "sellerInfo.userId": sellerId })
+        .toArray();
+
       res.send(result);
     });
 
