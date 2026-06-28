@@ -30,13 +30,12 @@ async function startServer() {
     const db = client.db(process.env.DB_NAME);
 
     const productsCollection = db.collection("products");
+    const ordersCollection = db.collection("orders");
 
     // Products apis
-
     app.get("/api/products", async (req, res) => {
       try {
         const { category, searchQuery, sort, page, perPage } = req.query;
-        // console.log(sort,category)
         let query = {};
         if (category && category !== "All") {
           query.category = category;
@@ -106,7 +105,6 @@ async function startServer() {
     app.delete("/api/products/:id", async (req, res) => {
       try {
         const { id } = req.params;
-        // console.log(id)
         const result = await productsCollection.deleteOne({_id: new ObjectId(id)});
         res.send(result);
       } catch (error) {
@@ -137,6 +135,22 @@ async function startServer() {
       } catch (err) {
         console.error("Error inserting product:", err);
         res.status(500).send({ error: "Failed to create product" });
+      }
+    });
+
+    // Order apis
+    app.post("/api/orders", async (req, res) => {
+      try {
+        const orderInfo = req.body;
+        const orderInfoWithDate = {
+          ...orderInfo,
+          createdAt: new Date(),
+        };
+        const result = await ordersCollection.insertOne(orderInfoWithDate);
+        res.send(result);
+      } catch (err) {
+        console.error("Error making order:", err);
+        res.status(500).send({ error: "Failed to create order" });
       }
     });
 
