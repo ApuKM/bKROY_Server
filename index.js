@@ -32,6 +32,57 @@ async function startServer() {
     const productsCollection = db.collection("products");
     const ordersCollection = db.collection("orders");
     const paymentsCollection = db.collection("payments");
+    const wishListCollection = db.collection("wishlist");
+    const sessionCollection = db.collection("session");
+
+
+      // Token related
+    const verifyToken = async (req, res, next) => {
+      // console.log("Headers", req.headers);
+      const authHeader = req.headers?.authorization;
+      if (!authHeader) {
+        return res.status(401).send({ message: "Unauthorized" });
+      }
+      const token = authHeader.split(" ")[1];
+      if (!token) {
+        return res.status(401).send({ message: "Unauthorized" });
+      }
+
+      const session = await sessionCollection.findOne({ token: token });
+      // console.log("session", session);
+      if (!session) {
+        return res.status(401).send({ message: "Unauthorized" });
+      }
+
+      const userId = session.userId;
+      const user = await usersCollection.findOne({ _id: userId });
+      // console.log("user of the session", user);
+      if (!user) {
+        return res.status(401).send({ message: "Unauthorized" });
+      }
+
+      req.user = user;
+      next();
+    };
+
+       const verifyBuyer = async (req, res, next) => {
+      if (req.user?.role !== "buyer") {
+        return res.status(403).send({ message: "Forbidden" });
+      }
+      next();
+    };
+    const verifySeller = async (req, res, next) => {
+      if (req.user?.role !== "seller") {
+        return res.status(403).send({ message: "Forbidden" });
+      }
+      next();
+    };
+    const verifyAdmin = async (req, res, next) => {
+      if (req.user?.role !== "admin") {
+        return res.status(403).send({ message: "Forbidden" });
+      }
+      next();
+    };
 
     // Products apis
     app.get("/api/products", async (req, res) => {
@@ -93,7 +144,7 @@ async function startServer() {
       res.send(result);
     });
 
-    app.patch("/api/products/:id", async (req, res) => {
+    app.patch("/api/products/:id", verifySeller, verifyToken, async (req, res) => {
       try {
         const { id } = req.params;
         const updatedProduct = req.body;
@@ -114,7 +165,7 @@ async function startServer() {
         res.status(500).send({ error: "Internal Server Error" });
       }
     });
-    app.delete("/api/products/:id", async (req, res) => {
+    app.delete("/api/products/:id", verifySeller, verifyToken, async (req, res) => {
       try {
         const { id } = req.params;
         const result = await productsCollection.deleteOne({
@@ -127,7 +178,7 @@ async function startServer() {
       }
     });
 
-    app.get("/api/products/seller/:sellerId", async (req, res) => {
+    app.get("/api/products/seller/:sellerId", verifySeller, verifyToken, async (req, res) => {
       const { sellerId } = req.params;
 
       const result = await productsCollection
@@ -137,7 +188,7 @@ async function startServer() {
       res.send(result);
     });
 
-    app.post("/api/products", async (req, res) => {
+    app.post("/api/products", verifySeller, verifyToken, async (req, res) => {
       try {
         const product = req.body;
         const newProduct = {
@@ -152,8 +203,29 @@ async function startServer() {
       }
     });
 
+    app.post("/api/products/wishlist", verifyBuyer, verifyToken, async (req, res) => {
+      try {
+        const wish = req.body;
+        const wishWithDate = {
+          ...wish,
+          createdAt: new Date(),
+        };
+        const result = await wishListCollection.insertOne(wishWithDate);
+        res.send(result);
+      } catch (err) {
+        console.error("Error inserting product:", err);
+        res.status(500).send({ error: "Failed to create product" });
+      }
+    });
+    app.get("/api/products/wishlist/:buyerId", verifyBuyer, verifyToken, async (req, res) => {
+      const { buyerId } = req.params;
+      console.log(buyerId)
+      const result = await wishListCollection.find({ "buyer.id": buyerId }).toArray();
+      res.send(result)
+    });
+
     // Order apis
-    app.post("/api/orders", async (req, res) => {
+    app.post("/api/orders", verifyBuyer, verifyToken, async (req, res) => {
       try {
         const orderInfo = req.body;
         const orderInfoWithDate = {
@@ -168,7 +240,7 @@ async function startServer() {
       }
     });
 
-    app.get("/api/orders/buyer/:buyerId", async (req, res) => {
+    app.get("/api/orders/buyer/:buyerId", verifyBuyer, verifyToken, async (req, res) => {
       const { buyerId } = req.params;
 
       const result = await ordersCollection
@@ -177,7 +249,7 @@ async function startServer() {
       res.send(result);
     });
 
-    app.delete("/api/orders/:id", async (req, res) => {
+    app.delete("/api/orders/:id", verifyBuyer, verifyToken, async (req, res) => {
       try {
         const { id } = req.params;
         // console.log(id)
@@ -192,7 +264,7 @@ async function startServer() {
     });
 
     //Payments apis
-    app.post("/api/transactions", async (req, res) => {
+    app.post("/api/transactions", verifyBuyer, verifyToken, async (req, res) => {
       const transactionInfo = req.body;
       // console.log(transactionInfo)
       try {
@@ -203,7 +275,7 @@ async function startServer() {
         res.status(500).send({ error: "Failed to create payment" });
       }
     });
-    app.get("/api/transactions", async (req, res) => {
+    app.get("/api/transactions", verifyBuyer, verifyToken, async (req, res) => {
       const { buyerId } = req.query;
       try {
         const result = await paymentsCollection.find({ buyerId }).toArray();
