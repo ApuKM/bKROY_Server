@@ -1,6 +1,6 @@
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-require("dotenv").config();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 const app = express();
@@ -31,6 +31,7 @@ async function startServer() {
 
     const productsCollection = db.collection("products");
     const ordersCollection = db.collection("orders");
+    const paymentsCollection = db.collection("payments");
 
     // Products apis
     app.get("/api/products", async (req, res) => {
@@ -90,8 +91,8 @@ async function startServer() {
 
         const updatedDoc = {
           $set: {
-            ...updatedProduct, 
-            updatedAt: new Date(), 
+            ...updatedProduct,
+            updatedAt: new Date(),
           },
         };
 
@@ -105,7 +106,9 @@ async function startServer() {
     app.delete("/api/products/:id", async (req, res) => {
       try {
         const { id } = req.params;
-        const result = await productsCollection.deleteOne({_id: new ObjectId(id)});
+        const result = await productsCollection.deleteOne({
+          _id: new ObjectId(id),
+        });
         res.send(result);
       } catch (error) {
         console.error("Failed to delete product:", error);
@@ -151,6 +154,33 @@ async function startServer() {
       } catch (err) {
         console.error("Error making order:", err);
         res.status(500).send({ error: "Failed to create order" });
+      }
+    });
+
+    //Payments apis
+    app.post("/api/transactions", async (req, res) => {
+      const transactionInfo = req.body;
+      // console.log(transactionInfo)
+      try {
+        const result = await paymentsCollection.insertOne(transactionInfo);
+        res.send(result);
+      } catch (err) {
+        console.error("Error inserting paymentInfo:", err);
+        res.status(500).send({ error: "Failed to create payment" });
+      }
+    });
+    app.get("/api/transactions", async (req, res) => {
+      const { buyerId } = req.query;
+      //       console.log(buyerId)
+      //       console.log("Received:", JSON.stringify(buyerId));
+      // console.log("Length:", buyerId.length);
+      try {
+        const result = await paymentsCollection.find({ buyerId }).toArray();
+        console.log("result:", result);
+        res.send(result);
+      } catch (err) {
+        console.error("Error getting paymentInfo:", err);
+        res.status(500).send({ error: "Failed to get payments" });
       }
     });
 
