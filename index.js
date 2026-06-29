@@ -168,14 +168,27 @@ async function startServer() {
       }
     });
 
-      app.get("/api/orders/buyer/:buyerId", async (req, res) => {
+    app.get("/api/orders/buyer/:buyerId", async (req, res) => {
       const { buyerId } = req.params;
-        // console.log(buyerId)
+
       const result = await ordersCollection
         .find({ "buyerInfo.userId": buyerId })
         .toArray();
-        // console.log(result)
       res.send(result);
+    });
+
+    app.delete("/api/orders/:id", async (req, res) => {
+      try {
+        const { id } = req.params;
+        // console.log(id)
+        const result = await ordersCollection.deleteOne({
+          _id: new ObjectId(id),
+        });
+        res.send(result);
+      } catch (error) {
+        console.error("Failed to delete order:", error);
+        res.status(500).send({ error: "Internal Server Error" });
+      }
     });
 
     //Payments apis
@@ -192,9 +205,6 @@ async function startServer() {
     });
     app.get("/api/transactions", async (req, res) => {
       const { buyerId } = req.query;
-      //       console.log(buyerId)
-      //       console.log("Received:", JSON.stringify(buyerId));
-      // console.log("Length:", buyerId.length);
       try {
         const result = await paymentsCollection.find({ buyerId }).toArray();
         console.log("result:", result);
