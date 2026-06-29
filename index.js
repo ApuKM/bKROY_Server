@@ -168,6 +168,16 @@ async function startServer() {
       }
     });
 
+      app.get("/api/orders/buyer/:buyerId", async (req, res) => {
+      const { buyerId } = req.params;
+        // console.log(buyerId)
+      const result = await ordersCollection
+        .find({ "buyerInfo.userId": buyerId })
+        .toArray();
+        // console.log(result)
+      res.send(result);
+    });
+
     //Payments apis
     app.post("/api/transactions", async (req, res) => {
       const transactionInfo = req.body;
