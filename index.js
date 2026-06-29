@@ -73,6 +73,17 @@ async function startServer() {
       }
     });
 
+    app.get("/api/products/featured", async (req, res) => {
+      try {
+        const result = await productsCollection.find({}).limit(6).toArray();
+
+        res.send(result);
+      } catch (err) {
+        console.error(err);
+        res.status(500).send({ error: "Failed to fetch featured products" });
+      }
+    });
+
     app.get("/api/products/:id", async (req, res) => {
       const { id } = req.params;
       const query = {
